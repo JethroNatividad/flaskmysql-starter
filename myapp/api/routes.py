@@ -1,24 +1,15 @@
-from flask import Flask, jsonify, request
+from flask import Blueprint, Flask, jsonify, request
 from bcrypt import hashpw, checkpw, gensalt
 import jwt
-import mysql.connector
+from config import cursor,db
 
-### config ###
-app = Flask(__name__)
-db = mysql.connector.connect(
-  host="127.0.0.1",
-  user="root",
-  password="1234",
-  database='db'
-)
-cursor = db.cursor(dictionary=True)
+api = Blueprint('api', __name__, url_prefix='/api')
 
 def gentoken(payload):
     return jwt.encode(payload, 'superverysecretkey', algorithm='HS256')
-
-### Routes ###
+### Auth Routes ###
 # Register
-@app.route('/register', methods=['POST'])
+@api.route('/register', methods=['POST'])
 def register():
     body = request.json
     name = body.get('name')
@@ -43,7 +34,7 @@ def register():
 
 
 # Login
-@app.route('/login', methods=['POST'])
+@api.route('/login', methods=['POST'])
 def login():
     body = request.json
     email = body.get('email')
@@ -70,7 +61,7 @@ def login():
 
 
 # show all users
-@app.route('/users')
+@api.route('/users')
 def show_users():
     cursor.execute('SELECT name, email FROM user')
     users = cursor.fetchall()
@@ -78,14 +69,10 @@ def show_users():
 
 
 # show single user
-@app.route('/users/<userId>')
+@api.route('/users/<userId>')
 def show_user(userId):
     cursor.execute(f'SELECT name, email FROM user WHERE id = {userId}')
     user = cursor.fetchone()
     if (user == None):
         return jsonify({'msg': 'User not found'})
     return jsonify({'user': user})
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
